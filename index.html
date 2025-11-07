@@ -41,6 +41,13 @@
             margin-bottom: 20px;
             line-height: 1.2;
             letter-spacing: -2px;
+            min-width: 400px;
+            display: inline-block;
+            transition: filter 0.15s ease-out;
+        }
+
+        .counter-number.blur {
+            filter: blur(4px);
         }
 
         .counter-text {
@@ -76,6 +83,7 @@
 
             .counter-number {
                 font-size: 64px;
+                min-width: 280px;
             }
 
             .counter-text {
@@ -118,37 +126,66 @@
 
     <script>
         // Easing function for smooth animation
-        function easeOutExpo(t) {
-            return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+        function easeOutQuart(t) {
+            return 1 - Math.pow(1 - t, 4);
         }
 
-        function animateCounter(element, target, duration = 2500) {
+        function animateCounter(element, target, duration = 2000) {
             const start = 0;
             const startTime = performance.now();
+            let lastDisplayed = 0;
 
             function update(currentTime) {
                 const elapsed = currentTime - startTime;
                 const progress = Math.min(elapsed / duration, 1);
 
                 // Apply easing
-                const easedProgress = easeOutExpo(progress);
+                const easedProgress = easeOutQuart(progress);
                 const current = Math.floor(start + (target - start) * easedProgress);
 
-                // Format number with comma
-                element.textContent = current.toLocaleString() + '+';
+                // Count in increments for smoother appearance
+                let displayValue = current;
+                if (current < 1000) {
+                    displayValue = Math.floor(current / 50) * 50; // Count by 50s at start
+                } else if (current < 5000) {
+                    displayValue = Math.floor(current / 100) * 100; // Count by 100s
+                } else {
+                    displayValue = Math.floor(current / 200) * 200; // Count by 200s later
+                }
 
-                // Create sparkle effect at random intervals
-                if (Math.random() > 0.95 && progress < 1) {
-                    createSparkle(element);
+                // Only update if value changed (prevents unnecessary repaints)
+                if (displayValue !== lastDisplayed) {
+                    // Add blur effect
+                    element.classList.add('blur');
+
+                    setTimeout(() => {
+                        element.textContent = displayValue.toLocaleString() + '+';
+                        element.classList.remove('blur');
+
+                        // Create sparkle effect occasionally
+                        if (Math.random() > 0.85 && progress < 0.95) {
+                            createSparkle(element);
+                        }
+                    }, 75); // Brief blur duration
+
+                    lastDisplayed = displayValue;
                 }
 
                 if (progress < 1) {
                     requestAnimationFrame(update);
                 } else {
-                    element.classList.add('animating');
+                    // Final update to exact value
+                    element.classList.add('blur');
                     setTimeout(() => {
-                        element.classList.remove('animating');
-                    }, 500);
+                        element.textContent = target.toLocaleString() + '+';
+                        element.classList.remove('blur');
+
+                        // Final pulse
+                        element.classList.add('animating');
+                        setTimeout(() => {
+                            element.classList.remove('animating');
+                        }, 500);
+                    }, 75);
                 }
             }
 
