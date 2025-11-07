@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmarterQueue Counter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .counter-container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 60px 80px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            max-width: 800px;
+        }
+
+        .counter-number {
+            font-size: 96px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            letter-spacing: -2px;
+        }
+
+        .counter-text {
+            font-size: 28px;
+            color: #4a5568;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .counter-text span {
+            display: inline-block;
+        }
+
+        /* Pulse animation for extra flair */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .counter-number.animating {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .counter-container {
+                padding: 40px 30px;
+            }
+
+            .counter-number {
+                font-size: 64px;
+            }
+
+            .counter-text {
+                font-size: 20px;
+            }
+        }
+
+        /* Sparkle effect */
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: sparkle-animation 1s ease-out forwards;
+            pointer-events: none;
+        }
+
+        @keyframes sparkle-animation {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--tx), var(--ty)) scale(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="counter-container">
+        <div class="counter-number" data-target="13000">0</div>
+        <div class="counter-text">
+            <span>brands have chosen</span>
+            <br>
+            <span style="font-weight: 700; color: #667eea;">SmarterQueue</span>
+        </div>
+    </div>
+
+    <script>
+        // Easing function for smooth animation
+        function easeOutExpo(t) {
+            return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+        }
+
+        function animateCounter(element, target, duration = 2500) {
+            const start = 0;
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+
+                // Apply easing
+                const easedProgress = easeOutExpo(progress);
+                const current = Math.floor(start + (target - start) * easedProgress);
+
+                // Format number with comma
+                element.textContent = current.toLocaleString() + '+';
+
+                // Create sparkle effect at random intervals
+                if (Math.random() > 0.95 && progress < 1) {
+                    createSparkle(element);
+                }
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    element.classList.add('animating');
+                    setTimeout(() => {
+                        element.classList.remove('animating');
+                    }, 500);
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        function createSparkle(element) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+
+            const rect = element.getBoundingClientRect();
+            const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * rect.width;
+            const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * rect.height;
+
+            sparkle.style.left = x + 'px';
+            sparkle.style.top = y + 'px';
+            sparkle.style.setProperty('--tx', (Math.random() - 0.5) * 100 + 'px');
+            sparkle.style.setProperty('--ty', (Math.random() - 0.5) * 100 + 'px');
+
+            document.body.appendChild(sparkle);
+
+            setTimeout(() => {
+                sparkle.remove();
+            }, 1000);
+        }
+
+        // Intersection Observer to trigger animation when visible
+        const counter = document.querySelector('.counter-number');
+        const target = parseInt(counter.getAttribute('data-target'));
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCounter(counter, target);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+
+        observer.observe(counter);
+    </script>
+</body>
+</html>
