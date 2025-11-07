@@ -34,20 +34,44 @@
         .counter-number {
             font-size: 96px;
             font-weight: 800;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            letter-spacing: -2px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .digit-wrapper {
+            display: inline-block;
+            overflow: hidden;
+            height: 115px;
+            position: relative;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-            margin-bottom: 20px;
-            line-height: 1.2;
-            letter-spacing: -2px;
-            min-width: 400px;
-            display: inline-block;
-            transition: filter 0.15s ease-out;
         }
 
-        .counter-number.blur {
-            filter: blur(4px);
+        .digit-column {
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .digit {
+            height: 115px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .comma, .plus {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .counter-text {
@@ -61,20 +85,6 @@
             display: inline-block;
         }
 
-        /* Pulse animation for extra flair */
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-            }
-            50% {
-                transform: scale(1.05);
-            }
-        }
-
-        .counter-number.animating {
-            animation: pulse 0.5s ease-in-out;
-        }
-
         /* Responsive design */
         @media (max-width: 768px) {
             .counter-container {
@@ -83,40 +93,25 @@
 
             .counter-number {
                 font-size: 64px;
-                min-width: 280px;
+            }
+
+            .digit-wrapper {
+                height: 76px;
+            }
+
+            .digit {
+                height: 76px;
             }
 
             .counter-text {
                 font-size: 20px;
             }
         }
-
-        /* Sparkle effect */
-        .sparkle {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: #667eea;
-            border-radius: 50%;
-            animation: sparkle-animation 1s ease-out forwards;
-            pointer-events: none;
-        }
-
-        @keyframes sparkle-animation {
-            0% {
-                opacity: 1;
-                transform: translate(0, 0) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(var(--tx), var(--ty)) scale(0);
-            }
-        }
     </style>
 </head>
 <body>
     <div class="counter-container">
-        <div class="counter-number" data-target="13000">0</div>
+        <div class="counter-number" id="counter" data-target="13000"></div>
         <div class="counter-text">
             <span>brands have chosen</span>
             <br>
@@ -125,101 +120,76 @@
     </div>
 
     <script>
-        // Easing function for smooth animation
-        function easeOutQuart(t) {
-            return 1 - Math.pow(1 - t, 4);
-        }
+        function createOdometer(element, targetNumber) {
+            // Convert number to string with comma: "13,000"
+            const formattedNumber = targetNumber.toLocaleString();
+            element.innerHTML = '';
 
-        function animateCounter(element, target, duration = 2000) {
-            const start = 0;
-            const startTime = performance.now();
-            let lastDisplayed = 0;
-
-            function update(currentTime) {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-
-                // Apply easing
-                const easedProgress = easeOutQuart(progress);
-                const current = Math.floor(start + (target - start) * easedProgress);
-
-                // Count in increments for smoother appearance
-                let displayValue = current;
-                if (current < 1000) {
-                    displayValue = Math.floor(current / 50) * 50; // Count by 50s at start
-                } else if (current < 5000) {
-                    displayValue = Math.floor(current / 100) * 100; // Count by 100s
+            // Create digit slots for each character
+            formattedNumber.split('').forEach((char, index) => {
+                if (char === ',') {
+                    const comma = document.createElement('span');
+                    comma.className = 'comma';
+                    comma.textContent = ',';
+                    element.appendChild(comma);
                 } else {
-                    displayValue = Math.floor(current / 200) * 200; // Count by 200s later
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'digit-wrapper';
+
+                    const column = document.createElement('div');
+                    column.className = 'digit-column';
+
+                    // Create digits 0-9 and the target digit
+                    const targetDigit = parseInt(char);
+                    for (let i = 0; i <= targetDigit; i++) {
+                        const digit = document.createElement('div');
+                        digit.className = 'digit';
+                        digit.textContent = i;
+                        column.appendChild(digit);
+                    }
+
+                    wrapper.appendChild(column);
+                    element.appendChild(wrapper);
                 }
+            });
 
-                // Only update if value changed (prevents unnecessary repaints)
-                if (displayValue !== lastDisplayed) {
-                    // Add blur effect
-                    element.classList.add('blur');
-
-                    setTimeout(() => {
-                        element.textContent = displayValue.toLocaleString() + '+';
-                        element.classList.remove('blur');
-
-                        // Create sparkle effect occasionally
-                        if (Math.random() > 0.85 && progress < 0.95) {
-                            createSparkle(element);
-                        }
-                    }, 75); // Brief blur duration
-
-                    lastDisplayed = displayValue;
-                }
-
-                if (progress < 1) {
-                    requestAnimationFrame(update);
-                } else {
-                    // Final update to exact value
-                    element.classList.add('blur');
-                    setTimeout(() => {
-                        element.textContent = target.toLocaleString() + '+';
-                        element.classList.remove('blur');
-
-                        // Final pulse
-                        element.classList.add('animating');
-                        setTimeout(() => {
-                            element.classList.remove('animating');
-                        }, 500);
-                    }, 75);
-                }
-            }
-
-            requestAnimationFrame(update);
+            // Add the "+" at the end
+            const plus = document.createElement('span');
+            plus.className = 'plus';
+            plus.textContent = '+';
+            element.appendChild(plus);
         }
 
-        function createSparkle(element) {
-            const sparkle = document.createElement('div');
-            sparkle.className = 'sparkle';
+        function animateOdometer(element) {
+            const columns = element.querySelectorAll('.digit-column');
 
-            const rect = element.getBoundingClientRect();
-            const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * rect.width;
-            const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * rect.height;
+            // Stagger the animation for each digit
+            columns.forEach((column, index) => {
+                const digits = column.querySelectorAll('.digit');
+                const targetIndex = digits.length - 1;
 
-            sparkle.style.left = x + 'px';
-            sparkle.style.top = y + 'px';
-            sparkle.style.setProperty('--tx', (Math.random() - 0.5) * 100 + 'px');
-            sparkle.style.setProperty('--ty', (Math.random() - 0.5) * 100 + 'px');
-
-            document.body.appendChild(sparkle);
-
-            setTimeout(() => {
-                sparkle.remove();
-            }, 1000);
+                // Add slight delay for each digit (cascade effect)
+                setTimeout(() => {
+                    column.style.transform = `translateY(-${targetIndex * 115}px)`;
+                }, index * 80);
+            });
         }
 
-        // Intersection Observer to trigger animation when visible
-        const counter = document.querySelector('.counter-number');
+        // Initialize
+        const counter = document.getElementById('counter');
         const target = parseInt(counter.getAttribute('data-target'));
 
+        // Create odometer structure
+        createOdometer(counter, target);
+
+        // Intersection Observer to trigger animation when visible
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
-                    animateCounter(counter, target);
+                    // Small delay before starting animation
+                    setTimeout(() => {
+                        animateOdometer(counter);
+                    }, 200);
                     observer.unobserve(entry.target);
                 }
             });
